@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import {
   AmbientLight,
+  Clock,
   Fog,
   GridHelper,
   PerspectiveCamera,
@@ -11,10 +12,12 @@ import {
   SpotLight,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { VRM, VRMUtils } from '@pixiv/three-vrm';
+import { VRM, VRMUtils, VRMExpressionPresetName } from '@pixiv/three-vrm';
 
 export default function CharacterView() {
   let timeout;
+  const clock = new Clock();
+  const vrmRef = useRef<VRM | null>(null);
 
   React.useEffect(() => {
     // Clear the animation loop when the component unmounts
@@ -57,6 +60,7 @@ export default function CharacterView() {
             VRM.from(gltf).then((vrm) => {
               scene.add(vrm.scene);
               vrm.scene.rotation.y = Math.PI;
+              vrmRef.current = vrm;
             });
           },
           (progress) => console.log('Loading model...', 100.0 * (progress.loaded / progress.total), '%'),
@@ -66,6 +70,12 @@ export default function CharacterView() {
         // Setup an animation loop
         const render = () => {
           timeout = requestAnimationFrame(render);
+          const delta = clock.getDelta();
+
+          if (vrmRef.current) {
+            vrmRef.current.update(delta);
+          }
+
           renderer.render(scene, camera);
           gl.endFrameEXP();
         };
